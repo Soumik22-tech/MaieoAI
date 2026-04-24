@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: mindmesh-api
+    env: python
+    buildCommand: pip install -e .
+    startCommand: uvicorn mindmesh.server:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: CEREBRAS_API_KEY
+        sync: false
