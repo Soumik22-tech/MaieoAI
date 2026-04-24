@@ -4,7 +4,7 @@ import { deleteDebate } from '@/lib/debates';
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const { userId } = await auth();
 
@@ -12,7 +12,7 @@ export async function DELETE(
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  const { id } = params;
+  const { id } = await params;
   await deleteDebate(id, userId);
   return NextResponse.json({ success: true });
 }

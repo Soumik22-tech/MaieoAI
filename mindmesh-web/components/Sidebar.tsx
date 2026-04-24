@@ -332,7 +332,7 @@ export default function Sidebar({
           
           {/* User Section */}
           <div className={`mt-2 flex items-center gap-3 p-2 rounded-xl transition-all ${isCollapsed ? 'justify-center' : 'bg-surface/30 border border-border/30'}`}>
-            <UserButton afterSignOutUrl="/" />
+            <UserButton />
             {!isCollapsed && isLoaded && user && (
               <div className="flex flex-col overflow-hidden">
                 <span className="text-xs font-medium text-text-primary truncate">Hi, {user.firstName || 'User'}</span>

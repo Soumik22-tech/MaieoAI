@@ -28,6 +28,8 @@ interface DebateResult {
   arbitration: ArbitrationResult
   final_answer: string
   duration_seconds: number
+  _db_id?: string
+  _share_id?: string
 }
 
 type DebateStatus = 

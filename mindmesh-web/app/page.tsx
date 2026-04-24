@@ -10,9 +10,9 @@ import MobileHistorySheet from '@/components/MobileHistorySheet';
 import ThemeToggle from '@/components/ThemeToggle';
 import AgentStatus from '@/components/AgentStatus';
 import InputBar from '@/components/InputBar';
-import { runDebate, getHistory, deleteSavedDebate } from '@/lib/api';
+import { runDebate, stopDebate } from '@/lib/api';
 import { DebateStatus } from '@/types/debate';
-import { SavedDebate } from '@/lib/storage';
+import { SavedDebate, getDebateById } from '@/lib/storage';
 import { decodeDebate } from '@/lib/share';
 import { useAuth } from '@clerk/nextjs';
 import LandingPage from '@/components/LandingPage';
@@ -24,6 +24,7 @@ export default function Home() {
   const [visibleStages, setVisibleStages] = useState(0);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isSharedView, setIsSharedView] = useState(false);
+  const [isStopped, setIsStopped] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [activeMobileTab, setActiveMobileTab] = useState<MobileTab>('debates');
@@ -96,6 +97,13 @@ export default function Home() {
     }, 3000);
   };
 
+  const handleStop = () => {
+    stopDebate();
+    setStatus('idle');
+    setIsStopped(true);
+    // Partial results remain visible via activeDebate + visibleStages
+  };
+
   const handleDebateSubmit = async (q: string) => {
     if (!q.trim()) return;
     
@@ -106,6 +114,7 @@ export default function Home() {
     }
     
     setStatus('proposing');
+    setIsStopped(false);
     setError(null);
     setVisibleStages(0);
     setActiveMobileTab('debates');
@@ -235,17 +244,27 @@ export default function Home() {
 
             {/* Empty State */}
             {!activeDebate && !error && status === 'idle' && (
-              <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-                <div className="mb-6">
-                  <h1 className="text-[3.5rem] md:text-[4.5rem] font-bold tracking-tight leading-none">
+              <div className="flex flex-col items-center justify-center min-h-[80vh] text-center px-4 -mt-10">
+                <div className="mb-4">
+                  <h1 className="text-[4rem] md:text-[5.5rem] font-bold tracking-tight leading-tight">
                     <span className="text-white">Mind</span>
                     <span className="text-[#7C6AF7]">Mesh.</span>
                   </h1>
                 </div>
-                <p className="text-text-secondary text-lg md:text-xl mb-12 max-w-lg mx-auto">
+                <p className="text-text-secondary text-lg md:text-xl mb-10 max-w-lg mx-auto opacity-80">
                   4 AI models debate your question. You get the truth.
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl">
+                
+                <div className="w-full mb-6">
+                  <InputBar 
+                    onSubmit={handleDebateSubmit}
+                    onStop={handleStop}
+                    disabled={false}
+                    isDebating={status !== 'idle' && status !== 'complete' && status !== 'error'}
+                  />
+                </div>
+
+                <div className="flex flex-wrap justify-center gap-3 w-full max-w-2xl opacity-70">
                   {[
                     "Is AI taking our jobs?", 
                     "Python vs JavaScript for backend?", 
@@ -254,7 +273,7 @@ export default function Home() {
                     <button 
                       key={q} 
                       onClick={() => handleDebateSubmit(q)} 
-                      className="p-4 rounded-xl border border-border bg-surface text-sm text-text-primary transition-all duration-300 hover:border-accent hover:-translate-y-0.5 hover:shadow-[0_0_12px_rgba(124,106,247,0.3)]"
+                      className="py-2.5 px-5 rounded-full border border-border bg-surface/50 text-[13px] text-text-primary transition-all duration-300 hover:border-accent hover:bg-surface hover:-translate-y-0.5"
                     >
                       {q}
                     </button>
@@ -350,11 +369,31 @@ export default function Home() {
                     Debate completed in {currentResult.duration_seconds.toFixed(1)}s
                   </div>
                 )}
+
+                {/* Stopped Notice */}
+                {isStopped && (
+                  <div className="mt-6 mb-4 flex items-center gap-3 px-5 py-4 rounded-xl border border-[#444] bg-[#1a1a1a] text-sm text-gray-400">
+                    <span className="w-2 h-2 rounded-full bg-gray-500 shrink-0" />
+                    <span>Debate stopped. Showing partial results — start a new debate anytime.</span>
+                  </div>
+                )}
               </motion.div>
             </AnimatePresence>
             
           </div>
         </div>
+
+        {/* Fixed bottom InputBar (only when NOT in welcome state) */}
+        {(activeDebate || error || status !== 'idle') && activeMobileTab === 'debates' && (
+          <div className="pb-[64px] md:pb-0 fixed md:static bottom-0 left-0 w-full z-40 bg-background/80 backdrop-blur-md border-t border-border/50">
+            <InputBar 
+              onSubmit={handleDebateSubmit}
+              onStop={handleStop}
+              disabled={false}
+              isDebating={status !== 'idle' && status !== 'complete' && status !== 'error'}
+            />
+          </div>
+        )}
 
         {activeMobileTab === 'settings' && (
           <div className="flex-1 overflow-y-auto px-6 py-10 pb-[84px] md:hidden">
@@ -373,12 +412,6 @@ export default function Home() {
           </div>
         )}
 
-        <div className={`${activeMobileTab === 'debates' ? 'block' : 'hidden md:block'} pb-[64px] md:pb-0 fixed md:static bottom-0 left-0 w-full z-40 bg-background`}>
-          <InputBar 
-            onSubmit={handleDebateSubmit} 
-            disabled={status !== 'idle' && status !== 'complete' && status !== 'error'} 
-          />
-        </div>
       </main>
 
       {/* Mobile History Bottom Sheet */}
