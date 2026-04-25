@@ -48,13 +48,10 @@ app.add_middleware(
 async def health():
     return {
         "status": "ok",
-        "agents": 4,
-        "models": {
-            "proposer": "llama-3.3-70b via Groq",
-            "challenger": "gemma-3-27b via Google",
-            "arbitrator": "qwen-3-235b via Cerebras",
-            "synthesizer": "gemini-2.5-flash via Google",
-        },
+        "project": "MindMesh",
+        "author": "Soumik22-tech",
+        "github": "https://github.com/Soumik22-tech/MindMesh",
+        "license": "MIT"
     }
 
 

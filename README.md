@@ -223,3 +223,14 @@ MIT — free to use, modify, and distribute.
 <p align="center">
   <sub>Built by <a href="https://github.com/Soumik22-tech">Soumik</a> · Because one AI shouldn't have the final word.</sub>
 </p>
+
+---
+
+## ✦ Attribution
+
+If you use MindMesh as a base for your project, please include:
+
+[![Built on MindMesh](https://img.shields.io/badge/Built%20on-MindMesh-7c6af7?style=flat&labelColor=0d0b1e)](https://github.com/Soumik22-tech/MindMesh)
+
+This project was originally created by [Soumik](https://github.com/Soumik22-tech).
+
