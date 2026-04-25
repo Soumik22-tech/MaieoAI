@@ -11,7 +11,7 @@ load_dotenv()
 class LLMRouter:
     def __init__(self):
         self._groq_client = None
-        self._google_client = None
+        self._google_clients = {}
         self._cerebras_client = None
 
         self.default_models = {
@@ -28,13 +28,23 @@ class LLMRouter:
             self._groq_client = OpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
         return self._groq_client
 
-    def _get_google_client(self):
-        if self._google_client is None:
+    def _get_google_client(self, model: str):
+        # Choose key based on model
+        is_gemma = "gemma" in model.lower()
+        key_var = "GOOGLE_API_KEY_CHALLENGER" if is_gemma else "GOOGLE_API_KEY_SYNTHESIZER"
+        
+        api_key = os.getenv(key_var)
+        if not api_key:
+            # Fallback to main key if specific one not set
             api_key = os.getenv("GOOGLE_API_KEY")
-            if not api_key:
-                raise ValueError("GOOGLE_API_KEY not found in environment.")
-            self._google_client = genai.Client(api_key=api_key)
-        return self._google_client
+            
+        if not api_key:
+            raise ValueError(f"Google API key not found. Tried {key_var} and GOOGLE_API_KEY.")
+            
+        if api_key not in self._google_clients:
+            self._google_clients[api_key] = genai.Client(api_key=api_key)
+            
+        return self._google_clients[api_key]
 
     def _get_cerebras_client(self):
         if self._cerebras_client is None:
@@ -103,7 +113,7 @@ class LLMRouter:
 
                 elif provider == "google":
                     from google.genai.errors import ServerError
-                    client = self._get_google_client()
+                    client = self._get_google_client(target_model)
                     from google.genai import types
                     
                     kwargs = {"temperature": temperature, "max_output_tokens": max_tokens}
