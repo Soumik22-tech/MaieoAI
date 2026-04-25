@@ -114,38 +114,7 @@ Instead of trusting a single LLM, MindMesh deploys a **council of four specializ
 - Node.js 18+
 - API keys for: Groq, Google AI Studio, Cerebras (and optionally OpenAI)
 
-### 1. Clone the Repository
 
-```bash
-git clone https://github.com/Soumik22-tech/MindMesh.git
-cd MindMesh
-```
-
-### 2. Configure Environment Variables
-
-```bash
-cp .env.example .env
-# Fill in your API keys in .env
-```
-
-### 3. Install & Run the Backend
-
-```bash
-pip install -r requirements.txt
-uvicorn mindmesh.main:app --reload
-```
-
-### 4. Install & Run the Frontend
-
-```bash
-cd mindmesh-web
-npm install
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) to see the debate arena.
-
----
 
 ## 🗂️ Project Structure
 

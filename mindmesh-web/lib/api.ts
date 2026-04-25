@@ -31,18 +31,6 @@ export async function runDebate(query: string): Promise<DebateResult> {
   return response.json();
 }
 
-export async function getHistory() {
-  const response = await fetch('/api/history');
-  if (!response.ok) throw new Error('Failed to fetch history');
-  return response.json();
-}
-
-export async function deleteSavedDebate(id: string) {
-  const response = await fetch(`/api/history/${id}`, { method: 'DELETE' });
-  if (!response.ok) throw new Error('Failed to delete debate');
-  return response.json();
-}
-
 export async function checkHealth(): Promise<boolean> {
   try {
     const response = await fetch(`${API_BASE}/health`);

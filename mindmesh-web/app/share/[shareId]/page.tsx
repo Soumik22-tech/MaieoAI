@@ -71,11 +71,12 @@ function SharedCard({
 export default async function SharedDebatePage({
   params,
 }: {
-  params: { shareId: string };
+  params: Promise<{ shareId: string }>;
 }) {
-  const debate = await getDebateByShareId(params.shareId).catch(() => null);
+  const { shareId } = await params;
+  const dbDebate = await getDebateByShareId(shareId).catch(() => null);
 
-  if (!debate) {
+  if (!dbDebate || !dbDebate.result) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center text-white px-6">
         <h1 className="text-4xl font-bold mb-4">Debate Not Found</h1>
@@ -89,6 +90,8 @@ export default async function SharedDebatePage({
       </div>
     );
   }
+
+  const debate = dbDebate.result;
 
   const challengeContent = debate.challenge
     ? `**Weaknesses:**\n${debate.challenge.weaknesses?.map((w: string) => `- ${w}`).join('\n') ?? ''}\n\n**Counterargument:**\n${debate.challenge.counterargument ?? ''}`

@@ -1,43 +1,32 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Trash2 } from 'lucide-react';
-import { getHistory, deleteDebate, clearHistory, SavedDebate } from '@/lib/storage';
+import { DbDebate } from '@/lib/debates';
 
 interface MobileHistorySheetProps {
   isOpen: boolean;
   onClose: () => void;
   activeId: string | null;
   onSelect: (id: string) => void;
+  onDelete: (id: string) => void;
   onNewDebate: () => void;
-  refreshTrigger: number;
+  debates: DbDebate[];
 }
 
-function formatRelativeTime(dateInput: Date | string) {
-  const date = new Date(dateInput);
-  const now = new Date();
+function timeAgo(dateString: string): string {
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMins / 60)
+  const diffDays = Math.floor(diffHours / 24)
   
-  if (isNaN(date.getTime())) return 'just now';
-
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-  
-  if (diffInSeconds < 60) return 'just now';
-  
-  const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes < 60) return `${diffInMinutes} minute${diffInMinutes !== 1 ? 's' : ''} ago`;
-  
-  const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) return `${diffInHours} hour${diffInHours !== 1 ? 's' : ''} ago`;
-  
-  const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays === 1) return 'Yesterday';
-  if (diffInDays < 30) return `${diffInDays} days ago`;
-  
-  const diffInMonths = Math.floor(diffInDays / 30);
-  if (diffInMonths < 12) return `${diffInMonths} month${diffInMonths !== 1 ? 's' : ''} ago`;
-  
-  return `${Math.floor(diffInMonths / 12)} year${Math.floor(diffInMonths / 12) !== 1 ? 's' : ''} ago`;
+  if (diffMins < 1) return 'Just now'
+  if (diffMins < 60) return `${diffMins}m ago`
+  if (diffHours < 24) return `${diffHours}h ago`
+  if (diffDays === 1) return 'Yesterday'
+  return `${diffDays} days ago`
 }
 
 export default function MobileHistorySheet({
@@ -45,35 +34,29 @@ export default function MobileHistorySheet({
   onClose,
   activeId,
   onSelect,
+  onDelete,
   onNewDebate,
-  refreshTrigger,
+  debates,
 }: MobileHistorySheetProps) {
-  const [history, setHistory] = useState<SavedDebate[]>([]);
 
-  const loadHistory = () => {
-    setHistory(getHistory());
-  };
-
-  useEffect(() => {
-    if (isOpen) {
-      loadHistory();
-    }
-  }, [refreshTrigger, isOpen]);
-
-  const handleDelete = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    deleteDebate(id);
-    loadHistory();
-    if (activeId === id) {
-      onNewDebate();
+  const handleDelete = async (e: React.MouseEvent, debateId: string) => {
+    e.stopPropagation()
+    
+    try {
+      const response = await fetch(`/api/history/${debateId}`, {
+        method: 'DELETE',
+      })
+      
+      if (response.ok) {
+        onDelete(debateId)
+      } else {
+        console.error('Failed to delete debate')
+      }
+    } catch (error) {
+      console.error('Delete error:', error)
     }
   };
 
-  const handleClearAll = () => {
-    clearHistory();
-    loadHistory();
-    onNewDebate();
-  };
   return (
     <AnimatePresence>
       {isOpen && (
@@ -118,13 +101,13 @@ export default function MobileHistorySheet({
 
             {/* List */}
             <div className="flex-1 overflow-y-auto px-4 py-2 pb-[80px]">
-              {history.length === 0 ? (
+              {debates.length === 0 ? (
                 <div className="text-center text-text-secondary py-10">
                   No debates yet
                 </div>
               ) : (
                 <ul className="flex flex-col gap-2 mt-2">
-                  {history.map((debate) => {
+                  {debates.map((debate) => {
                     const isActive = debate.id === activeId;
                     return (
                       <li
@@ -145,7 +128,7 @@ export default function MobileHistorySheet({
                             {debate.query}
                           </div>
                           <div className="text-xs opacity-60">
-                            {formatRelativeTime(debate.timestamp)}
+                            {timeAgo(debate.created_at)}
                           </div>
                         </div>
                         
@@ -163,16 +146,16 @@ export default function MobileHistorySheet({
             </div>
 
             {/* Footer */}
-            {history.length > 0 && (
+            {debates.length > 0 && (
               <div className="absolute bottom-0 left-0 w-full p-4 border-t border-border bg-surface shrink-0 pb-safe">
                 <button
                   onClick={() => {
-                    handleClearAll();
+                    onNewDebate();
                     onClose();
                   }}
-                  className="w-full py-3 text-sm font-medium text-red-400 bg-red-400/10 rounded-xl hover:bg-red-400/20 transition-colors"
+                  className="w-full py-3 text-sm font-medium text-accent bg-accent/10 rounded-xl hover:bg-accent/20 transition-colors"
                 >
-                  Clear All History
+                  Start New Debate
                 </button>
               </div>
             )}

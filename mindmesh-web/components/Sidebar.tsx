@@ -4,44 +4,34 @@ import { Plus, Trash2, Search, Settings, ChevronLeft, ChevronRight, Moon, Sun, M
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
-import { getHistory, deleteDebate, clearHistory, SavedDebate } from '../lib/storage';
 import { UserButton, useUser } from '@clerk/nextjs';
+import { DbDebate } from '@/lib/debates';
 
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
   activeId: string | null;
   onSelect: (id: string) => void;
+  onDelete: (id: string) => void;
   onNewDebate: () => void;
-  refreshTrigger: number;
+  debates: DbDebate[];
   isCollapsed: boolean;
   onToggleCollapse: () => void;
 }
 
-function formatRelativeTime(dateInput: Date | string) {
-  const date = new Date(dateInput);
-  const now = new Date();
+function timeAgo(dateString: string): string {
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMins / 60)
+  const diffDays = Math.floor(diffHours / 24)
   
-  if (isNaN(date.getTime())) return 'just now';
-
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-  
-  if (diffInSeconds < 60) return 'just now';
-  
-  const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes < 60) return `${diffInMinutes} minute${diffInMinutes !== 1 ? 's' : ''} ago`;
-  
-  const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) return `${diffInHours} hour${diffInHours !== 1 ? 's' : ''} ago`;
-  
-  const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays === 1) return 'Yesterday';
-  if (diffInDays < 30) return `${diffInDays} days ago`;
-  
-  const diffInMonths = Math.floor(diffInDays / 30);
-  if (diffInMonths < 12) return `${diffInMonths} month${diffInMonths !== 1 ? 's' : ''} ago`;
-  
-  return `${Math.floor(diffInMonths / 12)} year${Math.floor(diffInMonths / 12) !== 1 ? 's' : ''} ago`;
+  if (diffMins < 1) return 'Just now'
+  if (diffMins < 60) return `${diffMins}m ago`
+  if (diffHours < 24) return `${diffHours}h ago`
+  if (diffDays === 1) return 'Yesterday'
+  return `${diffDays} days ago`
 }
 
 const listVariants = {
@@ -62,12 +52,12 @@ export default function Sidebar({
   onClose, 
   activeId, 
   onSelect, 
+  onDelete,
   onNewDebate, 
-  refreshTrigger,
+  debates,
   isCollapsed,
   onToggleCollapse
 }: SidebarProps) {
-  const [history, setHistory] = useState<SavedDebate[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -89,20 +79,22 @@ export default function Sidebar({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const loadHistory = () => {
-    setHistory(getHistory());
-  };
-
-  useEffect(() => {
-    loadHistory();
-  }, [refreshTrigger]); // Reload when trigger changes
-
-  const handleDelete = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    deleteDebate(id);
-    loadHistory();
-    if (activeId === id) {
-      onNewDebate(); // Reset main view if active debate was deleted
+  const handleDelete = async (e: React.MouseEvent, debateId: string) => {
+    e.stopPropagation() // prevent triggering debate selection
+    
+    try {
+      const response = await fetch(`/api/history/${debateId}`, {
+        method: 'DELETE',
+      })
+      
+      if (response.ok) {
+        // Remove from local state immediately (optimistic update)
+        onDelete(debateId)
+      } else {
+        console.error('Failed to delete debate')
+      }
+    } catch (error) {
+      console.error('Delete error:', error)
     }
   };
 
@@ -111,14 +103,7 @@ export default function Sidebar({
     onClose();
   };
 
-  const handleClearAll = () => {
-    clearHistory();
-    loadHistory();
-    onNewDebate();
-    onClose();
-  };
-
-  const filteredHistory = history.filter(debate => 
+  const filteredHistory = debates.filter(debate => 
     debate.query.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -228,7 +213,7 @@ export default function Sidebar({
                           {debate.query}
                         </div>
                         <div className="text-[10px] opacity-60">
-                          {formatRelativeTime(debate.timestamp)}
+                          {timeAgo(debate.created_at)}
                         </div>
                         
                         <button

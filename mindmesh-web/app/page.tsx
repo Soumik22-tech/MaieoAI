@@ -12,13 +12,14 @@ import AgentStatus from '@/components/AgentStatus';
 import InputBar from '@/components/InputBar';
 import { runDebate, stopDebate } from '@/lib/api';
 import { DebateStatus } from '@/types/debate';
-import { SavedDebate, getDebateById } from '@/lib/storage';
+import { DbDebate } from '@/lib/debates';
 import { decodeDebate } from '@/lib/share';
 import { useAuth } from '@clerk/nextjs';
 import LandingPage from '@/components/LandingPage';
 
 export default function Home() {
-  const [activeDebate, setActiveDebate] = useState<SavedDebate | null>(null);
+  const [debates, setDebates] = useState<DbDebate[]>([]);
+  const [activeDebate, setActiveDebate] = useState<DbDebate | null>(null);
   const [status, setStatus] = useState<DebateStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const [visibleStages, setVisibleStages] = useState(0);
@@ -52,6 +53,23 @@ export default function Home() {
     }
   }, [status, activeDebate]);
 
+  // Load history from DB on mount
+  useEffect(() => {
+    if (!isSignedIn) return;
+    const loadHistory = async () => {
+      try {
+        const response = await fetch('/api/history');
+        if (response.ok) {
+          const data = await response.json();
+          setDebates(data);
+        }
+      } catch (error) {
+        console.error('Failed to load history:', error);
+      }
+    };
+    loadHistory();
+  }, [isSignedIn]);
+
   // Check URL for shared debate on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -62,9 +80,12 @@ export default function Home() {
       if (decoded) {
         setActiveDebate({
           id: 'shared',
+          user_id: 'shared',
           query: decoded.query,
-          timestamp: new Date().toISOString(),
-          result: decoded
+          result: decoded,
+          share_id: 'shared',
+          is_public: true,
+          created_at: new Date().toISOString()
         });
         setIsSharedView(true);
         triggerReplaySequence();
@@ -119,7 +140,15 @@ export default function Home() {
     setVisibleStages(0);
     setActiveMobileTab('debates');
     
-    setActiveDebate({ id: 'temp', query: q, timestamp: '', result: { query: q } as any });
+    setActiveDebate({ 
+      id: 'temp', 
+      user_id: '', 
+      query: q, 
+      result: { query: q } as any, 
+      share_id: '', 
+      is_public: false, 
+      created_at: new Date().toISOString() 
+    });
 
     // Start simulated progress while fetching
     const startTime = Date.now();
@@ -138,16 +167,21 @@ export default function Home() {
 
       // _db_id and _share_id come from our /api/debate route (saved to Neon)
       const savedId = result._db_id || crypto.randomUUID();
-      const newDebate: SavedDebate = {
+      const newDebate: DbDebate = {
         id: savedId,
-        query: result.query,
-        timestamp: new Date().toISOString(),
-        result,
-        shareId: result._share_id,
+        user_id: '', // Will be filled by DB if needed, but we don't need it here
+        query: q,
+        result: result,
+        share_id: result._share_id || '',
+        is_public: false,
+        created_at: new Date().toISOString(),
       };
 
       setActiveDebate(newDebate);
-      setRefreshTrigger(prev => prev + 1);
+      
+      // Update local history list immediately
+      setDebates(prev => [newDebate, ...prev]);
+      
       triggerReplaySequence();
 
     } catch (err: any) {
@@ -164,17 +198,21 @@ export default function Home() {
       window.history.pushState({}, '', '/');
     }
     
-    const debateResult = getDebateById(id);
-    if (debateResult) {
-      setActiveDebate({
-        id,
-        query: debateResult.query,
-        timestamp: '',
-        result: debateResult
-      });
+    const selected = debates.find(d => d.id === id);
+    if (selected) {
+      setActiveDebate(selected);
       setError(null);
       triggerReplaySequence();
       setActiveMobileTab('debates');
+    }
+  };
+
+  const handleDeleteDebate = (id: string) => {
+    setDebates(prev => prev.filter(d => d.id !== id))
+    // If deleted debate is currently active, clear the chat
+    if (activeDebate?.id === id) {
+      setActiveDebate(null)
+      setStatus('idle')
     }
   };
 
@@ -205,8 +243,9 @@ export default function Home() {
         onClose={() => setIsSidebarOpen(false)}
         activeId={activeDebate?.id || null}
         onSelect={handleSelectHistory}
+        onDelete={handleDeleteDebate}
         onNewDebate={handleNewDebate}
-        refreshTrigger={refreshTrigger}
+        debates={debates}
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
       />
@@ -359,7 +398,7 @@ export default function Home() {
                     content={currentResult.final_answer}
                     isFinal={true}
                     fullDebate={currentResult}
-                    shareId={activeDebate?.shareId}
+                    shareId={activeDebate?.share_id}
                   />
                 )}
 
@@ -420,8 +459,9 @@ export default function Home() {
         onClose={() => setActiveMobileTab('debates')}
         activeId={activeDebate?.id || null}
         onSelect={handleSelectHistory}
+        onDelete={handleDeleteDebate}
         onNewDebate={handleNewDebate}
-        refreshTrigger={refreshTrigger}
+        debates={debates}
       />
 
       {/* Mobile Bottom Navigation */}

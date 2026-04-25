@@ -5,6 +5,7 @@ export interface DbDebate {
   id: string
   user_id: string
   query: string
+  result?: DebateResult
   share_id: string
   is_public: boolean
   created_at: string
@@ -17,7 +18,7 @@ export async function saveDebate(
 ): Promise<DbDebate> {
   const rows = await sql`
     INSERT INTO debates (user_id, query, result)
-    VALUES (${userId}, ${query}, ${JSON.stringify(result)})
+    VALUES (${userId}, ${query}, ${JSON.stringify(result)}::jsonb)
     RETURNING id, user_id, query, share_id, is_public, created_at
   `
   return rows[0] as DbDebate
@@ -25,7 +26,7 @@ export async function saveDebate(
 
 export async function getUserDebates(userId: string): Promise<DbDebate[]> {
   const rows = await sql`
-    SELECT id, user_id, query, share_id, is_public, created_at
+    SELECT id, user_id, query, result, share_id, is_public, created_at
     FROM debates
     WHERE user_id = ${userId}
     ORDER BY created_at DESC
@@ -36,13 +37,14 @@ export async function getUserDebates(userId: string): Promise<DbDebate[]> {
 
 export async function getDebateByShareId(
   shareId: string
-): Promise<DebateResult | null> {
+): Promise<DbDebate | null> {
   const rows = await sql`
-    SELECT result FROM debates
+    SELECT id, user_id, query, result, share_id, is_public, created_at
+    FROM debates
     WHERE share_id = ${shareId} AND is_public = true
   `
   if (rows.length === 0) return null
-  return rows[0].result as DebateResult
+  return rows[0] as DbDebate
 }
 
 export async function deleteDebate(
