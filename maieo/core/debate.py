@@ -2,12 +2,12 @@ import time
 import asyncio
 from typing import Optional, Dict, Any
 
-from mindmesh.core.router import LLMRouter
-from mindmesh.core.models import DebateResult
-from mindmesh.agents.proposer import ProposerAgent
-from mindmesh.agents.challenger import ChallengerAgent
-from mindmesh.agents.arbitrator import ArbitratorAgent
-from mindmesh.agents.synthesizer import SynthesizerAgent
+from maieo.core.router import LLMRouter
+from maieo.core.models import DebateResult
+from maieo.agents.proposer import ProposerAgent
+from maieo.agents.challenger import ChallengerAgent
+from maieo.agents.arbitrator import ArbitratorAgent
+from maieo.agents.synthesizer import SynthesizerAgent
 
 class DebateSession:
     def __init__(self, config: Optional[Dict[str, Any]] = None):

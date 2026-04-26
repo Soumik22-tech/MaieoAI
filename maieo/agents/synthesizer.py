@@ -1,5 +1,5 @@
-from mindmesh.agents.base import BaseAgent
-from mindmesh.core.models import Proposal, Challenge, ArbitrationResult
+from maieo.agents.base import BaseAgent
+from maieo.core.models import Proposal, Challenge, ArbitrationResult
 
 class SynthesizerAgent(BaseAgent):
     def run(self, query: str, proposal: Proposal, challenge: Challenge, arbitration: ArbitrationResult) -> str:

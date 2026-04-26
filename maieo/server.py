@@ -8,7 +8,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from mindmesh.core.debate import DebateSession
+from maieo.core.debate import DebateSession
 
 
 class DebateRequest(BaseModel):

@@ -1,7 +1,7 @@
 import json
 import traceback
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from mindmesh.core.debate import DebateSession
+from maieo.core.debate import DebateSession
 
 class Maieo AIHandler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):

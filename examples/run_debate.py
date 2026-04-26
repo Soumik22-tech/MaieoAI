@@ -1,7 +1,7 @@
 import json
 import os
-from mindmesh.core.debate import DebateSession
-from mindmesh.cli import print_pretty_result
+from maieo.core.debate import DebateSession
+from maieo.cli import print_pretty_result
 
 def main():
     query = "Is Python the best language for AI development?"

@@ -1,6 +1,6 @@
 import re
-from mindmesh.agents.base import BaseAgent
-from mindmesh.core.models import Proposal
+from maieo.agents.base import BaseAgent
+from maieo.core.models import Proposal
 
 class ProposerAgent(BaseAgent):
     def run(self, query: str) -> Proposal:

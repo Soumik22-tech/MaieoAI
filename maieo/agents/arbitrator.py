@@ -1,6 +1,6 @@
 import re
-from mindmesh.agents.base import BaseAgent
-from mindmesh.core.models import Proposal, Challenge, ArbitrationResult, Verdict
+from maieo.agents.base import BaseAgent
+from maieo.core.models import Proposal, Challenge, ArbitrationResult, Verdict
 
 class ArbitratorAgent(BaseAgent):
     def run(self, query: str, proposal: Proposal, challenge: Challenge) -> ArbitrationResult:

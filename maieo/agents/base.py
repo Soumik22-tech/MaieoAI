@@ -1,6 +1,6 @@
 import re
 from abc import ABC, abstractmethod
-from mindmesh.core.router import LLMRouter
+from maieo.core.router import LLMRouter
 
 class BaseAgent(ABC):
     def __init__(self, router: LLMRouter):

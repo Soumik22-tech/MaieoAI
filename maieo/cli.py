@@ -6,8 +6,8 @@ from rich.panel import Panel
 from rich.progress import Progress, BarColumn, TextColumn
 from rich.text import Text
 
-from mindmesh.core.debate import DebateSession
-from mindmesh.core.models import DebateResult
+from maieo.core.debate import DebateSession
+from maieo.core.models import DebateResult
 
 def print_pretty_result(result: DebateResult):
     console = Console()
